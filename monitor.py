@@ -8,22 +8,26 @@ filename = "metrics.csv"
 file_exists = os.path.isfile(filename)
 
 def getMetrics():
-        cpu = psutil.cpu_percent(interval=None)
-        memory = psutil.virtual_memory().percent
-        disk = psutil.disk_usage("C:\\").percent
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return {
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "cpu": psutil.cpu_percent(interval=None),
+        "memory": psutil.virtual_memory().percent,
+        "disk": psutil.disk_usage('/').percent
+    }
 
-        return cpu, memory, disk, current_time
+def printMetrics(metrics):
+    print(f"Time: {metrics['time']}")
+    print(f"CPU: {metrics['cpu']:.1f}%")
+    print(f"Memory: {metrics['memory']:.1f}%")
+    print(f"Disk: {metrics['disk']:.1f}%")
 
-def printMetrics(cpu, memory, disk, current_time):
-        print(f"Recording... [Ctrl+C to Quit]")
-        print(f"Time: {current_time}")
-        print(f"CPU: {round(cpu)}%")
-        print(f"Memory: {round(memory)}%")
-        print(f"Disk : {round(disk)}%")
-
-def writeMetrics(writer, current_time, cpu, memory, disk):
-     writer.writerow([current_time, cpu, memory, disk])
+def writeMetrics(writer, metrics):
+        writer.writerow([
+        metrics["time"],
+        metrics["cpu"],
+        metrics["memory"],
+        metrics["disk"]
+    ])
 
 try:
     with open(filename, "a", newline='') as f:
@@ -31,11 +35,11 @@ try:
 
         if not file_exists:
             writer.writerow(["Time", "CPU %", "Memory", "Disk %"])
-
-        print("Recording metrics... Press Ctrl+C to stop.")
         
         while True:
-            
+            metrics = getMetrics()
+            printMetrics(metrics)
+            writeMetrics(writer, metrics)
             f.flush()
             os.system('cls' if os.name == 'nt' else 'clear')
             time.sleep(1)
