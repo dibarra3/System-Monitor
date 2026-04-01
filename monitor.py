@@ -19,6 +19,7 @@ try:
 
             cpu = psutil.cpu_percent(interval=None)
             memory = psutil.virtual_memory().percent
+            disk = psutil.disk_usage("C:\\").percent
 
             writer.writerow([formatted_time_24hr, cpu, memory])
             f.flush()
@@ -28,6 +29,7 @@ try:
             print(f"Time: {formatted_time_24hr}")
             print(f"CPU: {round(cpu)}%")
             print(f"Memory: {round(memory)}%")
+            print(f"Disk : {round(disk)}%")
             time.sleep(1)
 
 except KeyboardInterrupt:
