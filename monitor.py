@@ -63,10 +63,13 @@ def write_header(writer):
         "Bytes Sent",
         "Bytes Received",
         "Upload Rate (B/s)",
-        "Download Rate (B/s)"
+        "Download Rate (B/s)",
+        "Alerts"
     ])
 
-def write_Metrics(writer, metrics):
+def write_Metrics(writer, metrics, alerts):
+        alert_text = "; ".join(alerts)
+
         writer.writerow([
         metrics["time"],
         metrics["cpu"],
@@ -75,20 +78,21 @@ def write_Metrics(writer, metrics):
         metrics["bytes_sent"],
         metrics["bytes_recv"],
         metrics["sent_per_sec"],
-        metrics["recv_per_sec"]
+        metrics["recv_per_sec"],
+        alert_text
     ])
 
 def check_alerts(metrics):
     alerts = []
 
     if metrics['cpu'] > CPU_ALERT_THRESHOLD:
-        alerts.append("High CPU usage")
+        alerts.append("[WARNING] High CPU usage")
     
     if metrics['memory'] > MEMORY_ALERT_THRESHOLD:
-        alerts.append("High Memory usage")
+        alerts.append("[CRITICAL] High Memory usage")
     
     if metrics['disk'] > DISK_ALERT_THRESHOLD:
-        alerts.append("High Disk usage")
+        alerts.append("[EMERGENCY] High Disk usage")
     
     return alerts
 
@@ -107,15 +111,14 @@ def main():
                 metrics, previous_net = get_Metrics(previous_net, INTERVAL)
                 my_alerts = check_alerts(metrics)
 
-                if not my_alerts and PRINT_TO_SCREEN:
+                if PRINT_TO_SCREEN:
                     os.system('cls' if os.name == 'nt' else 'clear')
                     print_Metrics(metrics)
-                elif PRINT_TO_SCREEN:
-                    os.system('cls' if os.name == 'nt' else 'clear')
-                    print_Metrics(metrics)
-                    print(my_alerts)
+
+                    for alert in my_alerts:
+                        print(f"ALERT: {alert}")
                 
-                write_Metrics(writer, metrics)
+                write_Metrics(writer, metrics,my_alerts)
                 f.flush()
                 time.sleep(INTERVAL)
 
