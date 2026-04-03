@@ -9,8 +9,8 @@ INTERVAL = 1
 PRINT_TO_SCREEN = True
 DISK_PATH = "/"
 
-def getMetrics(previous_net, interval):
-    current_net = psutil.net_io_counters
+def get_Metrics(previous_net, interval):
+    current_net = psutil.net_io_counters()
     sent_per_sec = 0.0
     recv_per_sec = 0.0
 
@@ -29,16 +29,16 @@ def getMetrics(previous_net, interval):
         "recv_per_sec": recv_per_sec
     }, current_net
 
-def printMetrics(metrics):
+def print_Metrics(metrics):
     print(f"Time: {metrics['time']}")
     print(f"CPU: {metrics['cpu']:.1f}%")
     print(f"Memory: {metrics['memory']:.1f}%")
     print(f"Disk: {metrics['disk']:.1f}%")
     print(f"Bytes Sent: {metrics['bytes_sent']}")
     print(f"Bytes Received: {metrics['bytes_recv']}")
-    print(f"Upload Rate: {metrics['sent_per_sec']:.1f} B/s")
-    print(f"Download Rate: {metrics['recv_per_sec']:.1f} B/s")
-    print("\n")
+    print(f"Upload Rate: {format_bytes_per_sec(metrics['sent_per_sec'])}")
+    print(f"Download Rate: {format_bytes_per_sec(metrics['recv_per_sec'])}")
+    print("-" * 40)
 
 def format_bytes_per_sec(bytes_per_sec):
     if bytes_per_sec < 1024:
@@ -62,7 +62,7 @@ def write_header(writer):
         "Download Rate (B/s)"
     ])
 
-def writeMetrics(writer, metrics):
+def write_Metrics(writer, metrics):
         writer.writerow([
         metrics["time"],
         metrics["cpu"],
@@ -86,14 +86,14 @@ def main():
                 write_header(writer)
             
             while True:
-                metrics, previous_net = getMetrics(previous_net, INTERVAL)
+                metrics, previous_net = get_Metrics(previous_net, INTERVAL)
 
                 if PRINT_TO_SCREEN:
-                    printMetrics(metrics)
+                    os.system('cls' if os.name == 'nt' else 'clear')
+                    print_Metrics(metrics)
                 
-                writeMetrics(writer, metrics)
+                write_Metrics(writer, metrics)
                 f.flush()
-                os.system('cls' if os.name == 'nt' else 'clear')
                 time.sleep(INTERVAL)
 
     except KeyboardInterrupt:
