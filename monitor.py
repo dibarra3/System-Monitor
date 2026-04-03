@@ -34,19 +34,32 @@ def get_Metrics(previous_net, interval):
     }, current_net
 
 def print_Metrics(metrics, alerts):
+    print("=" * 50)
+    print("             SYSTEM MONITOR DASHBOARD")
+    print("=" * 50)
     print(f"Time: {metrics['time']}")
-    print(f"CPU: {metrics['cpu']:.1f}%")
-    print(f"Memory: {metrics['memory']:.1f}%")
-    print(f"Disk: {metrics['disk']:.1f}%")
-    print(f"Bytes Sent: {metrics['bytes_sent']}")
-    print(f"Bytes Received: {metrics['bytes_recv']}")
-    print(f"Upload Rate: {format_bytes_per_sec(metrics['sent_per_sec'])}")
-    print(f"Download Rate: {format_bytes_per_sec(metrics['recv_per_sec'])}")
+    print()
+
+    print("[USAGE]")
+    print(f"CPU:        {metrics['cpu']:.1f}%")
+    print(f"Memory:     {metrics['memory']:.1f}%")
+    print(f"Disk:       {metrics['disk']:.1f}%")
+    print()
+
+    print("[NETWORK]")
+    print(f"Bytes Sent:      {metrics['bytes_sent']}")
+    print(f"Bytes Received:  {metrics['bytes_recv']}")
+    print(f"Upload Rate:     {format_bytes_per_sec(metrics['sent_per_sec'])}")
+    print(f"Download Rate:   {format_bytes_per_sec(metrics['recv_per_sec'])}")
+    print()
+
+    print("[STATUS]")
     if alerts:
         print("Alerts: " + "; ".join(alerts))
     else:
         print("Alerts: None")
-    print("-" * 40)
+
+    print("=" * 50)
 
 def format_bytes_per_sec(bytes_per_sec):
     if bytes_per_sec < 1024:
