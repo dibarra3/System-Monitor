@@ -9,6 +9,10 @@ INTERVAL = 1
 PRINT_TO_SCREEN = True
 DISK_PATH = "/"
 
+CPU_ALERT_THRESHOLD = 80
+MEMORY_ALERT_THRESHOLD = 85
+DISK_ALERT_THRESHOLD = 90
+
 def get_Metrics(previous_net, interval):
     current_net = psutil.net_io_counters()
     sent_per_sec = 0.0
@@ -74,6 +78,20 @@ def write_Metrics(writer, metrics):
         metrics["recv_per_sec"]
     ])
 
+def check_alerts(metrics):
+    alerts = []
+
+    if metrics['cpu'] > CPU_ALERT_THRESHOLD:
+        alerts.append("High CPU usage")
+    
+    if metrics['memory'] > MEMORY_ALERT_THRESHOLD:
+        alerts.append("High Memory usage")
+    
+    if metrics['disk'] > DISK_ALERT_THRESHOLD:
+        alerts.append("High Disk usage")
+    
+    return alerts
+
 def main():
     file_exists = os.path.isfile(FILENAME)
     previous_net = None
@@ -87,10 +105,15 @@ def main():
             
             while True:
                 metrics, previous_net = get_Metrics(previous_net, INTERVAL)
+                my_alerts = check_alerts(metrics)
 
-                if PRINT_TO_SCREEN:
+                if not my_alerts and PRINT_TO_SCREEN:
                     os.system('cls' if os.name == 'nt' else 'clear')
                     print_Metrics(metrics)
+                elif PRINT_TO_SCREEN:
+                    os.system('cls' if os.name == 'nt' else 'clear')
+                    print_Metrics(metrics)
+                    print(my_alerts)
                 
                 write_Metrics(writer, metrics)
                 f.flush()
