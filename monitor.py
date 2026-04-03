@@ -33,7 +33,7 @@ def get_Metrics(previous_net, interval):
         "recv_per_sec": recv_per_sec
     }, current_net
 
-def print_Metrics(metrics):
+def print_Metrics(metrics, alerts):
     print(f"Time: {metrics['time']}")
     print(f"CPU: {metrics['cpu']:.1f}%")
     print(f"Memory: {metrics['memory']:.1f}%")
@@ -42,6 +42,10 @@ def print_Metrics(metrics):
     print(f"Bytes Received: {metrics['bytes_recv']}")
     print(f"Upload Rate: {format_bytes_per_sec(metrics['sent_per_sec'])}")
     print(f"Download Rate: {format_bytes_per_sec(metrics['recv_per_sec'])}")
+    if alerts:
+        print("Alerts: " + "; ".join(alerts))
+    else:
+        print("Alerts: None")
     print("-" * 40)
 
 def format_bytes_per_sec(bytes_per_sec):
@@ -113,10 +117,7 @@ def main():
 
                 if PRINT_TO_SCREEN:
                     os.system('cls' if os.name == 'nt' else 'clear')
-                    print_Metrics(metrics)
-
-                    for alert in my_alerts:
-                        print(f"ALERT: {alert}")
+                    print_Metrics(metrics,my_alerts)
                 
                 write_Metrics(writer, metrics,my_alerts)
                 f.flush()
