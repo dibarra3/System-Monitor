@@ -33,6 +33,12 @@ def get_Metrics(previous_net, interval):
         "recv_per_sec": recv_per_sec
     }, current_net
 
+def make_bar(percent, width=20):
+    filled = int((percent / 100) * width)
+    empty = width - filled
+    return "[" + "#" * filled + "-" * empty + "]"
+
+
 def print_Metrics(metrics, alerts):
     print("=" * 50)
     print("             SYSTEM MONITOR DASHBOARD")
@@ -41,9 +47,9 @@ def print_Metrics(metrics, alerts):
     print()
 
     print("[USAGE]")
-    print(f"CPU:        {metrics['cpu']:.1f}%")
-    print(f"Memory:     {metrics['memory']:.1f}%")
-    print(f"Disk:       {metrics['disk']:.1f}%")
+    print(f"CPU:        {metrics['cpu']:.1f}% {make_bar(metrics['cpu'])}")
+    print(f"Memory:     {metrics['memory']:.1f}% {make_bar(metrics['memory'])}")
+    print(f"Disk:       {metrics['disk']:.1f}% {make_bar(metrics['disk'])}")
     print()
 
     print("[NETWORK]")
@@ -55,8 +61,10 @@ def print_Metrics(metrics, alerts):
 
     print("[STATUS]")
     if alerts:
+        print("Health: WARNING")
         print("Alerts: " + "; ".join(alerts))
     else:
+        print("Health: NORMAL")
         print("Alerts: None")
 
     print("=" * 50)
