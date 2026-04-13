@@ -38,6 +38,20 @@ def make_bar(percent, width=20):
     empty = width - filled
     return "[" + "#" * filled + "-" * empty + "]"
 
+def get_health_status(alerts):
+    if not alerts:
+        return "NORMAL"
+
+    if any("[EMERGENCY]" in alert for alert in alerts):
+        return "EMERGENCY"
+
+    if any("[CRITICAL]" in alert for alert in alerts):
+        return "CRITICAL"
+
+    if any("[WARNING]" in alert for alert in alerts):
+        return "WARNING"
+
+    return "NORMAL"
 
 def print_Metrics(metrics, alerts):
     print("=" * 50)
@@ -59,12 +73,22 @@ def print_Metrics(metrics, alerts):
     print(f"Download Rate:   {format_bytes_per_sec(metrics['recv_per_sec'])}")
     print()
 
+    symbol = {
+        "NORMAL": "[OK]",
+        "WARNING": "[!]",
+        "CRITICAL": "[!!]",
+        "EMERGENCY": "[!!!]"
+    }
+
+    health = get_health_status(alerts)
+
     print("[STATUS]")
+    print(f"Health: {symbol[health]} {health}")
     if alerts:
-        print("Health: WARNING")
-        print("Alerts: " + "; ".join(alerts))
+        print("Alerts:")
+        for alert in alerts:
+            print(f"  - {alert}")
     else:
-        print("Health: NORMAL")
         print("Alerts: None")
 
     print("=" * 50)
