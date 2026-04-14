@@ -10,28 +10,42 @@ PRINT_TO_SCREEN = True
 DISK_PATH = "/"
 
 CPU_ALERT_THRESHOLD = 8
-MEMORY_ALERT_THRESHOLD = 85
+MEMORY_ALERT_THRESHOLD = 8
 DISK_ALERT_THRESHOLD = 90
+
+START_TIME = time.time()
 
 def get_Metrics(previous_net, interval):
     current_net = psutil.net_io_counters()
     sent_per_sec = 0.0
     recv_per_sec = 0.0
+    cpu = psutil.cpu_percent(interval=None)
+    memory = psutil.virtual_memory().percent
+    disk = psutil.disk_usage(DISK_PATH).percent
 
     if previous_net is not None:
         sent_per_sec = (current_net.bytes_sent - previous_net.bytes_sent) / interval
         recv_per_sec = (current_net.bytes_recv - previous_net.bytes_recv) / interval
 
-    return {
+    metrics = {
         "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "cpu": psutil.cpu_percent(interval=None),
-        "memory": psutil.virtual_memory().percent,
-        "disk": psutil.disk_usage(DISK_PATH).percent,
+        "cpu": cpu,
+        "memory": memory,
+        "disk": disk,
         "bytes_sent": current_net.bytes_sent,
         "bytes_recv": current_net.bytes_recv,
         "sent_per_sec": sent_per_sec,
-        "recv_per_sec": recv_per_sec
-    }, current_net
+        "recv_per_sec": recv_per_sec,   
+    }
+
+    alerts = check_alerts(metrics)
+    health = get_health_status(alerts)
+
+    metrics["health"] = health
+    metrics["active_alerts"] = len(alerts)
+    metrics["alert_messages"] = "; ".join(alerts) if alerts else "None"
+
+    return metrics, current_net
 
 def make_bar(percent, width=20):
     filled = int((percent / 100) * width)
@@ -58,6 +72,7 @@ def print_Metrics(metrics, alerts):
     print("             SYSTEM MONITOR DASHBOARD")
     print("=" * 50)
     print(f"Time: {metrics['time']}")
+    print(f"Monitor Runtime: {get_runtime()}")
     print()
 
     print("[USAGE]")
@@ -67,8 +82,8 @@ def print_Metrics(metrics, alerts):
     print()
 
     print("[NETWORK]")
-    print(f"Bytes Sent:      {metrics['bytes_sent']}")
-    print(f"Bytes Received:  {metrics['bytes_recv']}")
+    print(f"Bytes Sent:      {format_bytes(metrics['bytes_sent'])}")
+    print(f"Bytes Received:  {format_bytes(metrics['bytes_recv'])}")
     print(f"Upload Rate:     {format_bytes_per_sec(metrics['sent_per_sec'])}")
     print(f"Download Rate:   {format_bytes_per_sec(metrics['recv_per_sec'])}")
     print()
@@ -80,9 +95,10 @@ def print_Metrics(metrics, alerts):
         "EMERGENCY": "[!!!]"
     }
 
-    health = get_health_status(alerts)
+    health = metrics["health"]
 
     print("[STATUS]")
+    print(f"Active Alerts: {len(alerts)}")
     print(f"Health: {symbol[health]} {health}")
     if alerts:
         print("Alerts:")
@@ -105,20 +121,13 @@ def format_bytes_per_sec(bytes_per_sec):
 
 def write_header(writer):
     writer.writerow([
-        "Time",
-        "CPU %",
-        "Memory %",
-        "Disk %",
-        "Bytes Sent",
-        "Bytes Received",
-        "Upload Rate (B/s)",
-        "Download Rate (B/s)",
-        "Alerts"
+        "Time", "CPU %", "Memory %", "Disk %",
+        "Bytes Sent", "Bytes Received",
+        "Upload Rate (B/s)", "Download Rate (B/s)",
+        "Health", "Active Alerts", "Alert Messages"
     ])
 
 def write_Metrics(writer, metrics, alerts):
-        alert_text = "; ".join(alerts)
-
         writer.writerow([
         metrics["time"],
         metrics["cpu"],
@@ -128,7 +137,9 @@ def write_Metrics(writer, metrics, alerts):
         metrics["bytes_recv"],
         metrics["sent_per_sec"],
         metrics["recv_per_sec"],
-        alert_text
+        metrics["health"],
+        metrics["active_alerts"],
+        metrics["alert_messages"]
     ])
 
 def check_alerts(metrics):
@@ -144,6 +155,22 @@ def check_alerts(metrics):
         alerts.append("[EMERGENCY] High Disk usage")
     
     return alerts
+
+def get_runtime():
+    elapsed = int(time.time() - START_TIME)
+    hours = elapsed // 3600
+    minutes = (elapsed % 3600) // 60
+    seconds = elapsed % 60
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+def format_bytes(num):
+    units = ["B", "KB", "MB", "GB", "TB"]
+    value = float(num)
+
+    for unit in units:
+        if value < 1024 or unit == "TB":
+            return f"{value:.1f} {unit}"
+        value /= 1024
 
 def main():
     file_exists = os.path.isfile(FILENAME)
