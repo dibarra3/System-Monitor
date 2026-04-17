@@ -20,7 +20,10 @@ summary_stats = {
     "normal": 0,
     "warning": 0,
     "critical": 0,
-    "emergency": 0
+    "emergency": 0,
+    "cpu_total": 0.0,
+    "max_cpu": 0.0,
+    "max_memory": 0.0
 }
 
 def get_Metrics(previous_net, interval):
@@ -49,6 +52,7 @@ def get_Metrics(previous_net, interval):
     alerts = check_alerts(metrics)
     health = get_health_status(alerts)
 
+    metrics["alerts"] = alerts
     metrics["health"] = health
     metrics["active_alerts"] = len(alerts)
     metrics["alert_messages"] = "; ".join(alerts) if alerts else "None"
@@ -88,7 +92,16 @@ def update_summary(metrics):
     elif health == "EMERGENCY":
         summary_stats["emergency"] += 1
 
+    summary_stats["cpu_total"] += metrics["cpu"]
+    summary_stats["max_cpu"] = max(summary_stats["max_cpu"], metrics["cpu"])
+    summary_stats["max_memory"] = max(summary_stats["max_memory"], metrics["memory"])
+
 def print_summary():
+    avg_cpu = 0.0
+
+    if summary_stats["samples"] > 0:
+        avg_cpu = summary_stats["cpu_total"] / summary_stats["samples"]
+
     print("\n" + "=" * 50)
     print("              MONITOR SESSION SUMMARY")
     print("=" * 50)
@@ -98,6 +111,9 @@ def print_summary():
     print(f"WARNING Count:   {summary_stats['warning']}")
     print(f"CRITICAL Count:  {summary_stats['critical']}")
     print(f"EMERGENCY Count: {summary_stats['emergency']}")
+    print(f"Max CPU:         {summary_stats['max_cpu']:.1f}%")
+    print(f"Max Memory:      {summary_stats['max_memory']:.1f}%")
+    print(f"Average CPU:     {avg_cpu:.1f}%")
     print("=" * 50)
 
 def print_Metrics(metrics, alerts):
@@ -160,7 +176,7 @@ def write_header(writer):
         "Health", "Active Alerts", "Alert Messages"
     ])
 
-def write_Metrics(writer, metrics, alerts):
+def write_Metrics(writer, metrics):
         writer.writerow([
         metrics["time"],
         metrics["cpu"],
@@ -219,13 +235,13 @@ def main():
             while True:
                 metrics, previous_net = get_Metrics(previous_net, INTERVAL)
                 update_summary(metrics)
-                my_alerts = check_alerts(metrics)
+                my_alerts = metrics["alerts"]
 
                 if PRINT_TO_SCREEN:
                     os.system('cls' if os.name == 'nt' else 'clear')
                     print_Metrics(metrics,my_alerts)
                 
-                write_Metrics(writer, metrics,my_alerts)
+                write_Metrics(writer, metrics)
                 f.flush()
                 time.sleep(INTERVAL)
 
