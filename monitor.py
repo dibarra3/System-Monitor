@@ -23,7 +23,9 @@ summary_stats = {
     "emergency": 0,
     "cpu_total": 0.0,
     "max_cpu": 0.0,
-    "max_memory": 0.0
+    "max_memory": 0.0,
+    "max_upload": 0.0,
+    "max_download": 0.0
 }
 
 def get_Metrics(previous_net, interval):
@@ -50,9 +52,11 @@ def get_Metrics(previous_net, interval):
     }
 
     alerts = check_alerts(metrics)
+    alert_level = get_health_status(alerts)
     health = get_health_status(alerts)
 
     metrics["alerts"] = alerts
+    metrics["alert_level"] = alert_level
     metrics["health"] = health
     metrics["active_alerts"] = len(alerts)
     metrics["alert_messages"] = "; ".join(alerts) if alerts else "None"
@@ -79,28 +83,45 @@ def get_health_status(alerts):
 
     return "NORMAL"
 
+def get_health_status(alert_level):
+    if alert_level == "NORMAL":
+        return "NORMAL"
+    elif alert_level == "WARNING":
+        return "WARNING"
+    elif alert_level == "CRITICAL":
+        return "DEGRADED"
+    elif alert_level == "EMERGENCY":
+        return "UNSTABLE"
+
+    return "NORMAL"
+
 def update_summary(metrics):
     summary_stats["samples"] += 1
-    health = metrics["health"]
+    alert_level = metrics["alert_level"]
     
-    if health == "NORMAL":
+    if alert_level == "NORMAL":
         summary_stats["normal"] += 1
-    elif health == "WARNING":
+    elif alert_level == "WARNING":
         summary_stats["warning"] += 1
-    elif health == "CRITICAL":
+    elif alert_level == "CRITICAL":
         summary_stats["critical"] += 1
-    elif health == "EMERGENCY":
+    elif alert_level == "EMERGENCY":
         summary_stats["emergency"] += 1
 
     summary_stats["cpu_total"] += metrics["cpu"]
     summary_stats["max_cpu"] = max(summary_stats["max_cpu"], metrics["cpu"])
     summary_stats["max_memory"] = max(summary_stats["max_memory"], metrics["memory"])
+    summary_stats["max_upload"] = max(summary_stats["max_upload"], metrics["sent_per_sec"])
+    summary_stats["max_memory"] = max(summary_stats["max_memory"], metrics["recv_per_sec"])
+
 
 def print_summary():
     avg_cpu = 0.0
+    avg_memory = 0.0
 
     if summary_stats["samples"] > 0:
         avg_cpu = summary_stats["cpu_total"] / summary_stats["samples"]
+        avg_memory = summary_stats["memory_total"] / summary_stats["samples"]
 
     print("\n" + "=" * 50)
     print("              MONITOR SESSION SUMMARY")
@@ -114,6 +135,10 @@ def print_summary():
     print(f"Max CPU:         {summary_stats['max_cpu']:.1f}%")
     print(f"Max Memory:      {summary_stats['max_memory']:.1f}%")
     print(f"Average CPU:     {avg_cpu:.1f}%")
+    print(f"Max Memory:      {summary_stats['max_memory']:.1f}%")
+    print(f"Average Memory:  {avg_memory:.1f}%")
+    print(f"Peak Upload:     {format_bytes_per_sec(summary_stats['max_upload'])}")
+    print(f"Peak Download:   {format_bytes_per_sec(summary_stats['max_download'])}")
     print("=" * 50)
 
 def print_Metrics(metrics, alerts):
@@ -140,8 +165,8 @@ def print_Metrics(metrics, alerts):
     symbol = {
         "NORMAL": "[OK]",
         "WARNING": "[!]",
-        "CRITICAL": "[!!]",
-        "EMERGENCY": "[!!!]"
+        "DEGRADED": "[!!]",
+        "UNSTABLE": "[!!!]"
     }
 
     health = metrics["health"]
@@ -149,6 +174,8 @@ def print_Metrics(metrics, alerts):
     print("[STATUS]")
     print(f"Active Alerts: {len(alerts)}")
     print(f"Health: {symbol[health]} {health}")
+    print(f"Alert Level: {metrics['alert_level']}")
+
     if alerts:
         print("Alerts:")
         for alert in alerts:
@@ -173,7 +200,7 @@ def write_header(writer):
         "Time", "CPU %", "Memory %", "Disk %",
         "Bytes Sent", "Bytes Received",
         "Upload Rate (B/s)", "Download Rate (B/s)",
-        "Health", "Active Alerts", "Alert Messages"
+        "Health", "Alert Level", "Active Alerts", "Alert Messages"
     ])
 
 def write_Metrics(writer, metrics):
@@ -187,6 +214,7 @@ def write_Metrics(writer, metrics):
         metrics["sent_per_sec"],
         metrics["recv_per_sec"],
         metrics["health"],
+        metrics["alert_level"],
         metrics["active_alerts"],
         metrics["alert_messages"]
     ])
