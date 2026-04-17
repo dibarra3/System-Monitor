@@ -3,6 +3,10 @@ import time
 import os
 from datetime import datetime
 import csv
+from flask import Flask, Response
+
+app = Flask(__name__)
+latest_metrics = {}
 
 FILENAME = "metrics.csv"
 INTERVAL = 1
@@ -251,6 +255,24 @@ def format_bytes(num):
             return f"{value:.1f} {unit}"
         value /= 1024
 
+@app.route("/metrics")
+def metrics_endpoint():
+    if not latest_metrics:
+        return Response("", mimetype="text/plain")
+
+    m = latest_metrics
+
+    output = f"""
+cpu_usage {m['cpu']}
+memory_usage {m['memory']}
+disk_usage {m['disk']}
+upload_rate {m['sent_per_sec']}
+download_rate {m['recv_per_sec']}
+active_alerts {m['active_alerts']}
+"""
+
+    return Response(output.strip(), mimetype="text/plain")
+
 def main():
     file_exists = os.path.isfile(FILENAME)
     previous_net = None
@@ -261,11 +283,19 @@ def main():
 
             if not file_exists:
                 write_header(writer)
+            from threading import Thread
             
+            def run_server():
+                app.run(host="127.0.0.1", port=8000, debug=False, use_reloader=False)
+            
+            Thread(target=run_server, daemon=True).start()
+            print("Prometheus metrics available at http://127.0.0.1:8000/metrics")
+
             while True:
                 metrics, previous_net = get_Metrics(previous_net, INTERVAL)
+                global latest_metrics
+                latest_metrics = metrics
                 update_summary(metrics)
-                my_alerts = metrics["alerts"]
 
                 if PRINT_TO_SCREEN:
                     os.system('cls' if os.name == 'nt' else 'clear')
