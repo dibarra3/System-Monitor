@@ -15,6 +15,14 @@ DISK_ALERT_THRESHOLD = 90
 
 START_TIME = time.time()
 
+summary_stats = {
+    "samples": 0,
+    "normal": 0,
+    "warning": 0,
+    "critical": 0,
+    "emergency": 0
+}
+
 def get_Metrics(previous_net, interval):
     current_net = psutil.net_io_counters()
     sent_per_sec = 0.0
@@ -66,6 +74,31 @@ def get_health_status(alerts):
         return "WARNING"
 
     return "NORMAL"
+
+def update_summary(metrics):
+    summary_stats["samples"] += 1
+    health = metrics["health"]
+    
+    if health == "NORMAL":
+        summary_stats["normal"] += 1
+    elif health == "WARNING":
+        summary_stats["warning"] += 1
+    elif health == "CRITICAL":
+        summary_stats["critical"] += 1
+    elif health == "EMERGENCY":
+        summary_stats["emergency"] += 1
+
+def print_summary():
+    print("\n" + "=" * 50)
+    print("              MONITOR SESSION SUMMARY")
+    print("=" * 50)
+    print(f"Total Samples:   {summary_stats['samples']}")
+    print(f"Runtime:         {get_runtime()}")
+    print(f"NORMAL Count:    {summary_stats['normal']}")
+    print(f"WARNING Count:   {summary_stats['warning']}")
+    print(f"CRITICAL Count:  {summary_stats['critical']}")
+    print(f"EMERGENCY Count: {summary_stats['emergency']}")
+    print("=" * 50)
 
 def print_Metrics(metrics, alerts):
     print("=" * 50)
@@ -185,6 +218,7 @@ def main():
             
             while True:
                 metrics, previous_net = get_Metrics(previous_net, INTERVAL)
+                update_summary(metrics)
                 my_alerts = check_alerts(metrics)
 
                 if PRINT_TO_SCREEN:
@@ -197,8 +231,10 @@ def main():
 
     except KeyboardInterrupt:
         print("\nStopping script... Data saved to metrics.csv.")
+        print_summary()
     except Exception as e:
         print(f"\nAn unexpected error occurred: {e}")
+        
 
 if __name__ == "__main__":
     main()
