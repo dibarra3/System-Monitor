@@ -9,8 +9,8 @@ INTERVAL = 1
 PRINT_TO_SCREEN = True
 DISK_PATH = "/"
 
-CPU_ALERT_THRESHOLD = 8
-MEMORY_ALERT_THRESHOLD = 8
+CPU_ALERT_THRESHOLD = 80
+MEMORY_ALERT_THRESHOLD = 85
 DISK_ALERT_THRESHOLD = 90
 
 START_TIME = time.time()
@@ -22,6 +22,7 @@ summary_stats = {
     "critical": 0,
     "emergency": 0,
     "cpu_total": 0.0,
+    "memory_total": 0.0,
     "max_cpu": 0.0,
     "max_memory": 0.0,
     "max_upload": 0.0,
@@ -52,8 +53,8 @@ def get_Metrics(previous_net, interval):
     }
 
     alerts = check_alerts(metrics)
-    alert_level = get_health_status(alerts)
-    health = get_health_status(alerts)
+    alert_level = get_alert_level(alerts)
+    health = get_health_status(alert_level)
 
     metrics["alerts"] = alerts
     metrics["alert_level"] = alert_level
@@ -68,7 +69,7 @@ def make_bar(percent, width=20):
     empty = width - filled
     return "[" + "#" * filled + "-" * empty + "]"
 
-def get_health_status(alerts):
+def get_alert_level(alerts):
     if not alerts:
         return "NORMAL"
 
@@ -109,10 +110,11 @@ def update_summary(metrics):
         summary_stats["emergency"] += 1
 
     summary_stats["cpu_total"] += metrics["cpu"]
+    summary_stats["memory_total"] += metrics["memory"]
     summary_stats["max_cpu"] = max(summary_stats["max_cpu"], metrics["cpu"])
     summary_stats["max_memory"] = max(summary_stats["max_memory"], metrics["memory"])
     summary_stats["max_upload"] = max(summary_stats["max_upload"], metrics["sent_per_sec"])
-    summary_stats["max_memory"] = max(summary_stats["max_memory"], metrics["recv_per_sec"])
+    summary_stats["max_download"] = max(summary_stats["max_download"], metrics["recv_per_sec"])
 
 
 def print_summary():
@@ -133,7 +135,6 @@ def print_summary():
     print(f"CRITICAL Count:  {summary_stats['critical']}")
     print(f"EMERGENCY Count: {summary_stats['emergency']}")
     print(f"Max CPU:         {summary_stats['max_cpu']:.1f}%")
-    print(f"Max Memory:      {summary_stats['max_memory']:.1f}%")
     print(f"Average CPU:     {avg_cpu:.1f}%")
     print(f"Max Memory:      {summary_stats['max_memory']:.1f}%")
     print(f"Average Memory:  {avg_memory:.1f}%")
@@ -141,7 +142,8 @@ def print_summary():
     print(f"Peak Download:   {format_bytes_per_sec(summary_stats['max_download'])}")
     print("=" * 50)
 
-def print_Metrics(metrics, alerts):
+def print_Metrics(metrics):
+    alerts = metrics["alerts"]
     print("=" * 50)
     print("             SYSTEM MONITOR DASHBOARD")
     print("=" * 50)
@@ -172,7 +174,7 @@ def print_Metrics(metrics, alerts):
     health = metrics["health"]
 
     print("[STATUS]")
-    print(f"Active Alerts: {len(alerts)}")
+    print(f"Active Alerts: {metrics['active_alerts']}")
     print(f"Health: {symbol[health]} {health}")
     print(f"Alert Level: {metrics['alert_level']}")
 
@@ -204,7 +206,7 @@ def write_header(writer):
     ])
 
 def write_Metrics(writer, metrics):
-        writer.writerow([
+    writer.writerow([
         metrics["time"],
         metrics["cpu"],
         metrics["memory"],
@@ -267,7 +269,7 @@ def main():
 
                 if PRINT_TO_SCREEN:
                     os.system('cls' if os.name == 'nt' else 'clear')
-                    print_Metrics(metrics,my_alerts)
+                    print_Metrics(metrics)
                 
                 write_Metrics(writer, metrics)
                 f.flush()
