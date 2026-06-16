@@ -263,11 +263,11 @@ def metrics_endpoint():
     m = latest_metrics
 
     output = f"""
-cpu_usage {m['cpu']}
-memory_usage {m['memory']}
-disk_usage {m['disk']}
-upload_rate {m['sent_per_sec']}
-download_rate {m['recv_per_sec']}
+cpu_usage_percent {m['cpu']}
+memory_usage_percent {m['memory']}
+disk_usage_percent {m['disk']}
+upload_rate_bytes_per_second {m['sent_per_sec']}
+download_rate_bytes_per_second {m['recv_per_sec']}
 active_alerts {m['active_alerts']}
 """
 
